@@ -1,0 +1,70 @@
+{
+  "CTR": {
+    "model_type": "active_net",
+    "prob": "68",
+    "modelx": {
+      "model_hyperparameter": {
+        "dnn_potential_emb_space_output_units": [
+          128
+        ],
+        "user_net_dnn_hidden_units": [
+          256,
+          128
+        ],
+        "item_net_dnn_hidden_units": [
+          256,
+          128
+        ],
+        "activation": "lrelu",
+        "use_user_context": true,
+        "neg_num": 20,
+        "vocab_size": 64,
+        "interest_nums": 8,
+        "long_seq_nums": 8,
+        "long_seq_max_len": 100,
+        "interest_dim": 128,
+        "dynamic_routing_l2_normalize": false,
+        "dynamic_routing_alpha": 1,
+        "dynamic_routing_enlarge_factor": 10,
+        "temperature": 0.02,
+        "dnn_l2_reg": 1e-6,
+        "cold_pos_w": 3.0,
+        "atten_param": {
+          "atten_mode": "ln",
+          "use_atten_linear_project": true,
+          "residual_connection": true,
+          "attention_normalize": true,
+          "attention_l2_reg": 1e-6,
+          "dill_sa_num_units": 128,
+          "dill_sa_num_output_units": 128,
+          "num_heads": 2
+        }
+      }
+    },
+    "optimizer": {
+      "AdagradDecay": {
+        "scope": "Global",
+        "lr_func": "cold_start",
+        "learning_rate": 0.05,
+        "lrcs_init_lr": 0.001,
+        "lrcs_init_step": 200000,
+        "initial_accumulator_value": 0.1,
+        "decay_step": 100000,
+        "decay_rate": 0.95,
+        "clip_gradients": 5.0,
+        "staircase": true,
+        "use_locking": "False"
+      }
+    },
+    "metrics": {
+      "auc_compute": {
+        "true_positives": 100000
+      }
+    },
+    "user_columns": "user_columns",
+    "seq_column_blocks": "all_clk_seq_list:all_clk_seq_len_columns;long_clk_seq_list:long_clk_seq_len_columns",
+    "predict_max_step": 100
+
+  }
+}
+

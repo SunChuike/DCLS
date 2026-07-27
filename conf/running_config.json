@@ -1,0 +1,110 @@
+{
+  "ps": {
+    "count": 40,
+    "resourcePlan": {
+      "priority": {
+        "major_priority": 32,
+        "minor_priority": 0
+      },
+      "resources": [
+        {
+          "slotResources": [
+            {
+              "name": "T4",
+              "amount": 0
+            },
+            {
+              "name": "cpu",
+              "amount": 4000
+            },
+            {
+              "name": "mem",
+              "amount": 120000
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "worker": {
+    "count": 300,
+    "resourcePlan": {
+      "priority": {
+        "major_priority": 64,
+        "minor_priority": 0
+      },
+      "resources": [
+        {
+          "slotResources": [
+            {
+              "name": "T4",
+              "amount": 0
+            },
+            {
+              "name": "cpu",
+              "amount": 4000
+            },
+            {
+              "name": "mem",
+              "amount": 100000
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "chief": {
+    "count": 1,
+    "resourcePlan": {
+      "priority": {
+        "major_priority": 32,
+        "minor_priority": 0
+      },
+      "resources": [
+        {
+          "slotResources": [
+            {
+              "name": "T4",
+              "amount": 0
+            },
+            {
+              "name": "cpu",
+              "amount": 4000
+            },
+            {
+              "name": "mem",
+              "amount": 100000
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "tensorboard": {
+    "count": 1,
+    "resourcePlan": {
+      "priority": {
+        "major_priority": 33,
+        "minor_priority": 0
+      },
+      "resources": [
+        {
+          "slotResources": [
+            {
+              "name": "T4",
+              "amount": 0
+            },
+            {
+              "name": "cpu",
+              "amount": 100
+            },
+            {
+              "name": "mem",
+              "amount": 10000
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
