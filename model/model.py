@@ -531,12 +531,6 @@ class ActiveNet(Algorithm):
     def sequence_layer(self):
         with self.variable_scope("Sequence_Layer") as scope:
              with arg_scope(model_arg_scope(weight_decay=self.dnn_l2_reg)):
-                self.mp_outputs = self.build_mean_pooling(self.sequence_layer_dict, self.seq_column_len,'all_clk_seq_list', "short_seq_mp")  # (B, D)
-                self.predicted_sid = self.prediction_head(self.mp_outputs, [self.vocab_size], "predicted_sid")
-                self.long_seq_dict, self.long_seq_len_dict = self.topk_interest_lookup(self.predicted_sid,self.long_seq_nums,self.long_seq_max_len)
-                long_seq_names = ["long_seqs_{}".format(i + 1) for i in range(self.long_seq_nums)]
-                self.sa_long_seq_outputs = self.build_self_attention(self.long_seq_dict, self.long_seq_len_dict,long_seq_names, self.long_seq_max_len, "long_seq_self")  # (B, D)
-
                 self.seq_raw_input = self.sequence_layer_dict['all_clk_seq_list']
                 seq_potential_input = self.seq_raw_input
                 dnn_output_units = self.seq_raw_input.get_shape().as_list()[-1]
@@ -563,13 +557,19 @@ class ActiveNet(Algorithm):
                                     )
                 self.long_interest_enh = self.build_query_attention(self.interests, self.sequence_layer_dict,self.seq_column_len, 'long_clk_seq_list', "long_seq")
                 self.long_interest_enh_squash = squash(self.long_interest_enh, alpha=self.dynamic_routing_alpha)
-                self.interests_concat1 = tf.concat([self.interests, self.long_interest_enh_squash], -1)
-                self.interests_concat1_mlp = self.mlp(self.interests_concat1, 128, 'long_enh_seq_mlp')
+                self.interests_concat_enh = tf.concat([self.interests, self.long_interest_enh_squash], -1)
+                self.interests_concat_enh_mlp = self.mlp(self.interests_concat_enh, 128, 'long_enh_seq_mlp')
+
+                self.mp_outputs = self.build_mean_pooling(self.sequence_layer_dict, self.seq_column_len,'all_clk_seq_list', "short_seq_mp")  # (B, D)
+                self.predicted_sid = self.prediction_head(self.mp_outputs, [self.vocab_size], "predicted_sid")
+                self.long_seq_dict, self.long_seq_len_dict = self.topk_interest_lookup(self.predicted_sid,self.long_seq_nums,self.long_seq_max_len)
+                long_seq_names = ["long_seqs_{}".format(i + 1) for i in range(self.long_seq_nums)]
+                self.sa_long_seq_outputs = self.build_self_attention(self.long_seq_dict, self.long_seq_len_dict,long_seq_names, self.long_seq_max_len,"long_seq_self")  # (B, D)
 
                 self.long_interest_supp = tf.stack([self.sa_long_seq_outputs[f'long_seqs_{i + 1}'] for i in range(self.long_seq_nums)],axis=1)
                 self.long_interest_supp_squash = squash(self.long_interest_supp, alpha=self.dynamic_routing_alpha)
                 self.long_interest_supp_mlp = self.mlp(self.long_interest_supp_squash, 128, 'long_supp_seq_mlp')
-                self.interests_concat = tf.concat([self.interests_concat1_mlp, self.long_interest_supp_mlp], axis=1)
+                self.interests_concat = tf.concat([self.interests_concat_enh_mlp, self.long_interest_supp_mlp], axis=1)
 
     def user_net(self):
         with self.variable_scope(name_or_scope="user_net") as scope:
