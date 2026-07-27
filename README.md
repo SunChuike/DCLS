@@ -12,7 +12,8 @@ The DCLS architecture, highlighting critical modules, is shown below. Accompanyi
 
 *   **Annotated Code Snippet for Key Modules (model.py):**
 
-<img width="1532" height="596" alt="key module" src="https://github.com/user-attachments/assets/a08b99a5-d199-4d6a-b25a-59e496887745" />
+<img width="2696" height="1686" alt="image" src="https://github.com/user-attachments/assets/f05519fd-728e-4bde-aa84-a66ac7301d12" />
+
 
 
 
