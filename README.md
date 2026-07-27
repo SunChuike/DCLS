@@ -8,7 +8,7 @@ The DCLS architecture, highlighting critical modules, is shown below. Accompanyi
 
 *   **Overall Model Structure:**
 
-<img width="2227" height="1012" alt="model" src="https://github.com/user-attachments/files/30406042/model.pdf" />
+<img width="2493" height="1058" alt="model" src="https://github.com/user-attachments/assets/e37fc3ca-cd69-440d-97e5-b38658da0d2d" />
 
 *   **Annotated Code Snippet for Key Modules (model.py):**
 
