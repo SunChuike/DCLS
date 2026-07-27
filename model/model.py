@@ -534,24 +534,15 @@ class ActiveNet(Algorithm):
                 self.mp_outputs = self.build_mean_pooling(self.sequence_layer_dict, self.seq_column_len,'all_clk_seq_list', "short_seq_mp")  # (B, D)
                 self.predicted_sid = self.prediction_head(self.mp_outputs, [self.vocab_size], "predicted_sid")
                 self.long_seq_dict, self.long_seq_len_dict = self.topk_interest_lookup(self.predicted_sid,self.long_seq_nums,self.long_seq_max_len)
-
                 long_seq_names = ["long_seqs_{}".format(i + 1) for i in range(self.long_seq_nums)]
                 self.sa_long_seq_outputs = self.build_self_attention(self.long_seq_dict, self.long_seq_len_dict,long_seq_names, self.long_seq_max_len, "long_seq_self")  # (B, D)
 
                 self.seq_raw_input = self.sequence_layer_dict['all_clk_seq_list']
                 seq_potential_input = self.seq_raw_input
-                self.logger.info("##### seq_raw_input: {}".format(self.seq_raw_input))
-
                 dnn_output_units = self.seq_raw_input.get_shape().as_list()[-1]
                 self.seq_potential_input = self.dnn_potential_emb_space(seq_potential_input, dnn_output_units, 'short_seq_mind_potential')
-
                 dynamic_routing_input = tf.concat([self.seq_raw_input, self.seq_potential_input], -1)
-
                 self.sequence_length_1d = tf.reshape(self.layer_dict[self.seq_column_len['all_clk_seq_list']], [-1])
-
-                self.logger.info("##### sequence_length_1d: {}".format(self.sequence_length_1d)) # (?,)
-
-                # all_clk 过 MIND
                 self.interests, self.raw_interests, self.interest_weights, self.raw_interest_weights, self.routing_inputs = \
                     dynamic_routing(inputs=dynamic_routing_input,
                                     interest_num=self.interest_nums,
