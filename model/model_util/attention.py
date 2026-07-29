@@ -308,7 +308,6 @@ def dynamic_routing(inputs,
                     linear_transform=True,
                     share_interert_weight=True,
                     random_init=True,
-                    # softmax_by_interest=True,
                     l2_normalize=False,
                     inner_activation='l2_norm',
                     last_activation='squash',
@@ -320,8 +319,6 @@ def dynamic_routing(inputs,
                     outputs_collections=None,
                     reuse=None
                     ):
-    # inputs [batch, seq_len, dim]
-    # inputs_length [batch]
     with tf.variable_scope(scope, reuse=reuse):
         batch, seq_len, dim = get_shape(inputs)
         if linear_transform:
@@ -354,86 +351,48 @@ def dynamic_routing(inputs,
                 inputs = tf.reshape(inputs, [-1, seq_len, interest_num, interest_dim])
                 inputs_stopped = tf.stop_gradient(inputs, name='inputs_stopped')
         else:
-            # [batch, seq_len, 1, dim]
             inputs = tf.expand_dims(inputs, 2)
-            # [batch, seq_len, interest_num, dim]
             inputs = tf.tile(inputs, [1, 1, interest_num, 1])
             inputs_stopped = tf.stop_gradient(inputs, name='inputs_stopped')
 
-        # [batch, seq_len]
         inputs_mask = tf.sequence_mask(inputs_length, seq_len, tf.float32)
-        # [batch, seq_len, 1, 1]
         inputs_mask = tf.reshape(inputs_mask, [batch, seq_len, 1, 1])
-
-        # inputs_mask_2 = tf.sequence_mask(inputs_length, seq_len)
-        # # [batch, seq_len, interest_num, 1]
-        # inputs_mask_2 = tf.tile(tf.reshape(inputs_mask_2, [batch, seq_len, 1, 1]), [1, 1, interest_num, 1])
-
         if random_init or share_interert_weight:
-            # [batch, seq_len, interest_num, 1]
-            # b_ij表示序列元素和兴趣向量的内积, 表征相似度, 这里先进行初始化
             b_ij = tf.truncated_normal([batch, seq_len, interest_num, 1], stddev=stddev_b)
         else:
             mask = tf.reshape(inputs_mask, [-1])
             inputs_stopped_2d = tf.reshape(inputs_stopped, [-1, interest_num*interest_dim])
             inputs_stopped_4d = tf.reshape(tf.where(tf.greater(mask, 1), inputs_stopped_2d, tf.zeros_like(inputs_stopped_2d)),
                                            [-1, seq_len, interest_num, interest_dim])
-            # [batch, 1, interest_num, interest_dim]
             s_j = tf.reduce_sum(inputs_stopped_4d, 1, True) / interest_num
             v_j = l2_norm(s_j)
             b_ij = tf.reduce_sum(tf.multiply(inputs_stopped, v_j), -1, True)
-
-        # todo 这里是不是要去掉, 不然波动会很大？
         if init_b_enlarge:
             b_ij = b_ij * enlarge_factor
         b_ij = tf.stop_gradient(b_ij)
 
-        # paddings = tf.ones_like(b_ij) * -2**31
-
         for i in range(routing_iter):
             with tf.variable_scope('iter_' + str(i)):
-                # [batch, seq_len, interest_num, 1]
-                # if softmax_by_interest:
-                # c_ij表示每个元素有多少概率属于各个兴趣向量
-                c_ij = tf.nn.softmax(b_ij, 2)  # 相当于把序列的每个元素等价了,序列相当于集合, 物理含义是每个元素有多少概率属于各个兴趣向量, 但可能存在兴趣向量之间在方向上很相似的情况
+                c_ij = tf.nn.softmax(b_ij, 2)
                 c_ij = c_ij * inputs_mask
-                # else:
-                #     # 序列中每个元素都有重要性, 物理含义是兴趣向量由序列中元素按概率组合而成
-                #     c_ij = tf.where(inputs_mask_2, b_ij, paddings)
-                #     c_ij = tf.nn.softmax(c_ij, 1)
 
                 if i < routing_iter - 1:
-                    # 不反向传播
-                    # [batch, seq_len, interest_num, 1] * [batch, seq_len, interest_num, dim]
-                    # [batch, seq_len, interest_num, dim]
                     s_j = tf.multiply(c_ij, inputs_stopped)
-                    # [batch, 1, interest_num, dim]
-                    # s_j表示融合后的兴趣向量
                     s_j = tf.reduce_sum(s_j, 1, True)
-                    # v_j表示激活后的兴趣向量
                     v_j = routing_activations[inner_activation](s_j, alpha)
 
                     if l2_normalize:
-                        # 废弃, 这里对输入归一化没什么物理意义, 因为softmax是在兴趣这个维度做的, 不是在序列这个维度做的,
-                        # 唯一有影响的就是内积后值的大小对softmax后取值范围的影响
                         b_ij = tf.reduce_sum(tf.multiply(l2_norm(inputs_stopped), v_j), -1, True)
                     else:
-                        # [batch, seq_len, interest_num, dim] * [batch, 1, interest_num, dim] = [batch, seq_len, interest_num, dim]
-                        # 兴趣向量与序列各个元素的向量作内积 [batch, seq_len, interest_num, 1]
                         b_ij = tf.reduce_sum(tf.multiply(inputs_stopped, v_j), -1, True)
                     b_ij = b_ij * enlarge_factor
                 else:
-                    # 反向传播
                     s_j = tf.multiply(c_ij, inputs)
                     s_j = tf.reduce_sum(s_j, 1, True)
-                    # [batch, 1, interest_num, dim]
                     v_j = routing_activations[last_activation](s_j, alpha)
 
-        # [batch, interest_num, dim]
         interest_vec = tf.squeeze(v_j, axis=1)
         raw_interest_vec = tf.squeeze(s_j, axis=1)
-
-        # [batch, seq_len, interest_num]--> [batch, interest_num, seq_len]
         attention = tf.transpose(tf.squeeze(c_ij, axis=-1), [0, 2, 1])
         raw_attention = tf.transpose(tf.squeeze(b_ij, axis=-1), [0, 2, 1])
         return interest_vec, raw_interest_vec, attention, raw_attention, inputs
